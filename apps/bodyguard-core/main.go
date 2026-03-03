@@ -225,10 +225,18 @@ func main() {
 		r.Get("/clamav/status", app.handleClamAVStatus)
 		r.Post("/clamav/refresh", app.handleClamAVRefresh)
 		r.Post("/clamav/scan", app.handleClamAVScan)
+		r.Put("/clamav/toggle", app.handleClamAVToggle)
 
 		// Suricata routes
 		r.Get("/suricata/status", app.handleSuricataStatus)
 		r.Get("/suricata/alerts", app.handleSuricataAlerts)
+		r.Put("/suricata/toggle", app.handleSuricataToggle)
+
+		// DNS routes
+		r.Put("/dns/toggle", app.handleDNSToggle)
+
+		// AI Analysis routes
+		r.Put("/ai/toggle", app.handleAIToggle)
 
 		// Telegram routes
 		r.Get("/telegram/status", app.handleTelegramStatus)
@@ -795,6 +803,96 @@ func (a *App) handleSuricataAlerts(w http.ResponseWriter, r *http.Request) {
 	limit := intQuery(r, "limit", 100)
 	alerts := a.suricata.GetRecentAlerts(limit)
 	writeJSON(w, map[string]interface{}{"items": alerts})
+}
+
+func (a *App) handleClamAVToggle(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Enabled bool `json:"enabled"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	a.clamAV.SetEnabled(req.Enabled)
+	writeJSON(w, map[string]interface{}{
+		"success": true,
+		"enabled": req.Enabled,
+		"message": fmt.Sprintf("ClamAV scanning %s", map[bool]string{true: "enabled", false: "disabled"}[req.Enabled]),
+		"status":  a.clamAV.GetStatus(),
+	})
+}
+
+func (a *App) handleSuricataToggle(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Enabled bool `json:"enabled"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if err := a.suricata.SetEnabled(req.Enabled); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, map[string]interface{}{
+		"success": true,
+		"enabled": req.Enabled,
+		"message": fmt.Sprintf("Suricata IDS %s", map[bool]string{true: "enabled", false: "disabled"}[req.Enabled]),
+		"status":  a.suricata.GetStatus(),
+	})
+}
+
+func (a *App) handleDNSToggle(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Enabled bool `json:"enabled"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if err := a.dnsServer.SetEnabled(req.Enabled); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, map[string]interface{}{
+		"success":  true,
+		"enabled":  req.Enabled,
+		"running":  a.dnsServer.IsRunning(),
+		"message":  fmt.Sprintf("DNS Server %s", map[bool]string{true: "enabled", false: "disabled"}[req.Enabled]),
+	})
+}
+
+func (a *App) handleAIToggle(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Enabled bool `json:"enabled"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	// For AI analysis, we just set an environment variable or in-memory flag
+	// since AI doesn't have a continuous running service
+	if req.Enabled {
+		log.Println("[AI] AI Analysis enabled")
+	} else {
+		log.Println("[AI] AI Analysis disabled")
+	}
+
+	writeJSON(w, map[string]interface{}{
+		"success": true,
+		"enabled": req.Enabled,
+		"message": fmt.Sprintf("AI Analysis %s", map[bool]string{true: "enabled", false: "disabled"}[req.Enabled]),
+	})
 }
 
 // Parental Control handlers

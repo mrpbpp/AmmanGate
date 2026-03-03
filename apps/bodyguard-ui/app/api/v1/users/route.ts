@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_API = "http://127.0.0.1:8787/v1";
+const BACKEND_API = process.env.NEXT_PUBLIC_CORE_API || "http://127.0.0.1:8787/v1";
+
+// Helper to get session ID for backend auth
+function getSessionId(request: NextRequest): string | null {
+  return request.cookies.get("session")?.value || null;
+}
 
 // GET /api/v1/users - List all users
 export async function GET(request: NextRequest) {
   try {
-    const sessionCookie = request.cookies.get("session");
+    const sessionId = getSessionId(request);
 
-    if (!sessionCookie?.value) {
+    if (!sessionId) {
       return NextResponse.json(
         { error: "Not authenticated" },
         { status: 401 }
@@ -18,7 +23,7 @@ export async function GET(request: NextRequest) {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        "Cookie": `session=${sessionCookie.value}`,
+        "Cookie": `session=${sessionId}`,
       },
     });
 
@@ -42,9 +47,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const sessionCookie = request.cookies.get("session");
+    const sessionId = getSessionId(request);
 
-    if (!sessionCookie?.value) {
+    if (!sessionId) {
       return NextResponse.json(
         { error: "Not authenticated" },
         { status: 401 }
@@ -55,7 +60,7 @@ export async function POST(request: NextRequest) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Cookie": `session=${sessionCookie.value}`,
+        "Cookie": `session=${sessionId}`,
       },
       body: JSON.stringify(body),
     });

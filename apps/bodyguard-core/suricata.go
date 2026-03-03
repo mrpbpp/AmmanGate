@@ -198,6 +198,28 @@ func (s *SuricataManager) IsRunning() bool {
 	return s.running
 }
 
+// SetEnabled enables or disables Suricata monitoring
+func (s *SuricataManager) SetEnabled(enabled bool) error {
+	s.mu.Lock()
+	wasRunning := s.running
+	wasEnabled := s.enabled
+	s.enabled = enabled
+	s.mu.Unlock()
+
+	if enabled {
+		log.Println("[Suricata] Suricata integration enabled")
+		if !wasRunning && wasEnabled {
+			return s.Start()
+		}
+	} else {
+		log.Println("[Suricata] Suricata integration disabled")
+		if wasRunning {
+			s.Stop()
+		}
+	}
+	return nil
+}
+
 // monitorEVELog monitors the Suricata EVE JSON log file
 func (s *SuricataManager) monitorEVELog() {
 	// Open the EVE log file

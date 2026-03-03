@@ -47,11 +47,20 @@ async function proxyRequest(request: NextRequest, path: string[]) {
       body = text || undefined; // Convert empty string to undefined
     }
 
+    // Forward session cookie for authentication
+    const sessionId = request.cookies.get("session")?.value;
+
+    const headers: Record<string, string> = {
+      "Content-Type": request.headers.get("content-type") || "application/json",
+    };
+
+    if (sessionId) {
+      headers["Cookie"] = `session=${sessionId}`;
+    }
+
     const response = await fetch(targetUrl, {
       method: request.method,
-      headers: {
-        "Content-Type": request.headers.get("content-type") || "application/json",
-      },
+      headers,
       body,
     });
 

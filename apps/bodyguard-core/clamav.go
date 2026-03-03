@@ -276,6 +276,20 @@ func (c *ClamAVClient) RefreshStatus() {
 	c.checkStatus()
 }
 
+// SetEnabled enables or disables ClamAV scanning
+func (c *ClamAVClient) SetEnabled(enabled bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.enabled = enabled
+	if enabled {
+		log.Println("[ClamAV] Scanning enabled")
+	} else {
+		log.Println("[ClamAV] Scanning disabled")
+	}
+	// Refresh status to update running state
+	go c.checkStatus()
+}
+
 // ============================================================================
 // URL Scanning - Phishing and Malware URL Detection
 // ============================================================================

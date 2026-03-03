@@ -1,25 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_API = "http://127.0.0.1:8787/v1";
+const BACKEND_API = process.env.NEXT_PUBLIC_CORE_API || "http://127.0.0.1:8787/v1";
+
+// Helper to get session cookie value (session ID for backend auth)
+function getSessionId(request: NextRequest): string | null {
+  return request.cookies.get("session")?.value || null;
+}
+
+// Helper to get username from session_client cookie
+function getUsername(request: NextRequest): string | null {
+  return request.cookies.get("session_client")?.value || null;
+}
 
 export async function GET(request: NextRequest) {
   try {
-    // Get the session cookie from the request
-    const sessionCookie = request.cookies.get("session");
+    const sessionId = getSessionId(request);
+    const username = getUsername(request);
 
-    if (!sessionCookie?.value) {
+    if (!sessionId) {
       return NextResponse.json(
         { error: "Not authenticated" },
         { status: 401 }
       );
     }
 
-    // Forward the request to backend with session cookie
-    const response = await fetch(`${BACKEND_API}/me`, {
+    // Get users using session ID for authentication
+    const response = await fetch(`${BACKEND_API}/users`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        "Cookie": `session=${sessionCookie.value}`,
+        "Cookie": `session=${sessionId}`,
       },
     });
 
@@ -29,7 +39,28 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(data, { status: response.status });
     }
 
-    return NextResponse.json(data);
+    // Find the current user from the users list
+    const users = data.users || [];
+
+    // Use username from session_client if available, otherwise first user
+    let currentUser;
+    if (username) {
+      currentUser = users.find((u: any) => u.username === username);
+    }
+
+    // Fallback to first user if username not found
+    if (!currentUser && users.length > 0) {
+      currentUser = users[0];
+    }
+
+    if (!currentUser) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ user: currentUser });
   } catch (error) {
     console.error("Error fetching user profile:", error);
     return NextResponse.json(

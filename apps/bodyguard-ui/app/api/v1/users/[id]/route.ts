@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_API = "http://127.0.0.1:8787/v1";
+const BACKEND_API = process.env.NEXT_PUBLIC_CORE_API || "http://127.0.0.1:8787/v1";
+
+// Helper to get session ID for backend auth
+function getSessionId(request: NextRequest): string | null {
+  return request.cookies.get("session")?.value || null;
+}
 
 // PUT /api/v1/users/[id] - Update a user
 export async function PUT(
@@ -9,9 +14,9 @@ export async function PUT(
 ) {
   try {
     const body = await request.json();
-    const sessionCookie = request.cookies.get("session");
+    const sessionId = getSessionId(request);
 
-    if (!sessionCookie?.value) {
+    if (!sessionId) {
       return NextResponse.json(
         { error: "Not authenticated" },
         { status: 401 }
@@ -22,7 +27,7 @@ export async function PUT(
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        "Cookie": `session=${sessionCookie.value}`,
+        "Cookie": `session=${sessionId}`,
       },
       body: JSON.stringify(body),
     });
@@ -49,9 +54,9 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const sessionCookie = request.cookies.get("session");
+    const sessionId = getSessionId(request);
 
-    if (!sessionCookie?.value) {
+    if (!sessionId) {
       return NextResponse.json(
         { error: "Not authenticated" },
         { status: 401 }
@@ -62,7 +67,7 @@ export async function DELETE(
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
-        "Cookie": `session=${sessionCookie.value}`,
+        "Cookie": `session=${sessionId}`,
       },
     });
 

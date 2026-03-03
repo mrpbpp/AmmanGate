@@ -87,6 +87,18 @@ func (d *DNSServer) IsRunning() bool {
 	return d.running
 }
 
+// SetEnabled starts or stops the DNS server
+func (d *DNSServer) SetEnabled(enabled bool) error {
+	if enabled {
+		log.Println("[DNS] Enabling DNS server")
+		return d.Start()
+	} else {
+		log.Println("[DNS] Disabling DNS server")
+		d.Stop()
+		return nil
+	}
+}
+
 // handleDNSQuery processes incoming DNS queries
 func (d *DNSServer) handleDNSQuery(w dns.ResponseWriter, r *dns.Msg) {
 	msg := new(dns.Msg)
