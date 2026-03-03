@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import UserManagement from './components/UserProfileCard';
+import UserProfileCard from './components/UserProfileCard';
+import UserManagement from './components/UserManagement';
 
 interface ServiceStatus {
   enabled: boolean;
@@ -143,6 +144,9 @@ export default function SettingsPage() {
       </div>
 
       {/* User Profile */}
+      <UserProfileCard />
+
+      {/* User Management (Admin only) */}
       <UserManagement />
 
       {/* Services Configuration */}
