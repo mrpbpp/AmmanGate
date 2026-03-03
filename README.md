@@ -11,6 +11,7 @@
 ## Table of Contents / Daftar Isi
 
 - [About / Tentang](#about--tentang)
+- [Screenshots / Tangkapan Layar](#screenshots--tangkapan-layar)
 - [Architecture / Arsitektur](#architecture--arsitektur)
 - [Features / Fitur](#features--fitur)
 - [Requirements / Kebutuhan](#requirements--kebutuhan)
@@ -39,6 +40,34 @@
 - AI-powered security analysis (via LM Studio)
 - Telegram bot integration for alerts
 - Web dashboard for management
+
+---
+
+## Screenshots / Tangkapan Layar
+
+### Dashboard / Dasbor
+
+![Dashboard](docs/screenshots/dashboard.png)
+
+Main dashboard showing system status, alerts, and network overview.
+
+### Activities / Aktivitas
+
+![Activities](docs/screenshots/Activities.png)
+
+Real-time event timeline showing security events and activities.
+
+### Settings / Pengaturan
+
+![Settings](docs/screenshots/settings.png)
+
+User management and system configuration interface.
+
+### Parental Control / Kontrol Orang Tua
+
+![Parental Control](docs/screenshots/parental.png)
+
+DNS filtering, device blocking, and parental control settings.
 
 ---
 
