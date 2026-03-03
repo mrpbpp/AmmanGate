@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  # AmmanGate Bodyguard Core with ClamAV and Suricata
+  bodyguard-core:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.bodyguard-core
+    container_name: ammangate-core
+    hostname: ammangate
+    restart: unless-stopped
+    networks:
+      - ammangate-net
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_ADMIN
+    volumes:
+      # Database persistence
+      - ammangate-data:/ammangate/data
+      # ClamAV data
+      - clamav-data:/var/lib/clamav
+      # Suricata logs
+      - suricata-logs:/var/log/suricata
+      # ClamAV logs
+      - clamav-logs:/var/log/clamav
+      # Configuration
+      - ./docker/suricata.yaml:/etc/suricata/suricata.yaml:ro
+      - ./docker/clamd.conf:/etc/clamav/clamd.conf:ro
+    env_file:
+      - .env
+    environment:
+      # Override specific values for Docker
+      - BG_ADDR=0.0.0.0:8787
+      # Add Docker-specific paths
+      - BG_DB=/ammangate/data/bodyguard.db
+      - SURICATA_EVE_LOG=/var/log/suricata/eve.json
+      - CLAMAV_ADDRESS=/var/run/clamav/clamd.ctl
+      - TZ=${TZ:-Asia/Jakarta}
+      # Backend URL for frontend connection
+      - CORE_API_URL=http://bodyguard-core:8787/v1
+    ports:
+      - "8787:8787"    # API Server
+      - "53:53/udp"     # DNS Server (optional)
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8787/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # AmmanGate Frontend (Next.js)
+  bodyguard-ui:
+    build:
+      context: apps/bodyguard-ui
+      dockerfile: ../../docker/Dockerfile.bodyguard-ui
+    container_name: ammangate-ui
+    restart: unless-stopped
+    networks:
+      - ammangate-net
+    depends_on:
+      bodyguard-core:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      # Backend API URL (container name)
+      - BACKEND_API=http://bodyguard-core:8787/v1
+      - TZ=${TZ:-Asia/Jakarta}
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  ammangate-net:
+    driver: bridge
+
+volumes:
+  ammangate-data:
+    driver: local
+  clamav-data:
+    driver: local
+  suricata-logs:
+    driver: local
+  clamav-logs:
+    driver: local

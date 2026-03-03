@@ -1,0 +1,76 @@
+# Development Docker Compose
+# Use this for local development with hot-reload
+
+version: "3.9"
+
+services:
+  # Go Backend - Development mode
+  bodyguard-core:
+    build:
+      context: ../apps/bodyguard-core
+      dockerfile: ../../deploy/Dockerfile.core
+    container_name: ammangate-core-dev
+    restart: "no"
+    ports:
+      - "8787:8787"
+    volumes:
+      - ../apps/bodyguard-core:/app
+      - bodyguard-dev-data:/app/data
+    environment:
+      - BG_ADDR=0.0.0.0:8787
+      - BG_DB=/app/data/bodyguard.db
+      - BG_ACTION_PIN=1234
+    networks:
+      - ammangate-dev
+
+  # Next.js UI - Development mode
+  bodyguard-ui:
+    build:
+      context: ../apps/bodyguard-ui
+      dockerfile: ../../deploy/Dockerfile.ui
+    container_name: ammangate-ui-dev
+    restart: "no"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../apps/bodyguard-ui:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - CORE_API_URL=http://bodyguard-core:8787
+      - BG_UI_SECRET=dev_secret
+      - NODE_ENV=development
+    command: npm run dev
+    depends_on:
+      - bodyguard-core
+    networks:
+      - ammangate-dev
+
+  # Claw Gateway - Development mode
+  claw-gateway:
+    build:
+      context: ../apps/claw-gateway
+      dockerfile: ../../deploy/Dockerfile.claw
+    container_name: ammangate-claw-dev
+    restart: "no"
+    ports:
+      - "3001:3001"
+    volumes:
+      - ../apps/claw-gateway:/app
+      - /app/node_modules
+    environment:
+      - CORE_API_URL=http://bodyguard-core:8787
+      - CLAW_PORT=3001
+      - ACTION_PIN=1234
+    command: npm run dev
+    depends_on:
+      - bodyguard-core
+    networks:
+      - ammangate-dev
+
+volumes:
+  bodyguard-dev-data:
+
+networks:
+  ammangate-dev:
+    driver: bridge

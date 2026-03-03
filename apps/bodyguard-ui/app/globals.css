@@ -1,0 +1,151 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Dark theme colors */
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+
+    /* Card background */
+    --card: 222 47% 14%;
+    --card-foreground: 210 40% 98%;
+
+    /* Primary blue accent */
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary */
+    --secondary: 217 33% 25%;
+    --secondary-foreground: 210 40% 98%;
+
+    /* Muted */
+    --muted: 217 33% 25%;
+    --muted-foreground: 215 20% 65%;
+
+    /* Accent */
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Destructive */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Borders */
+    --border: 217 33% 25%;
+    --input: 217 33% 25%;
+    --ring: 217 91% 60%;
+
+    /* Radius */
+    --radius: 0.5rem;
+  }
+
+  body {
+    @apply bg-slate-900 text-slate-100 antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-slate-800;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-600 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-500;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900;
+  }
+
+  .btn-primary {
+    @apply bg-blue-600 text-white hover:bg-blue-500 focus:ring-blue-500 shadow-lg shadow-blue-600/30;
+  }
+
+  .btn-secondary {
+    @apply bg-slate-700 text-slate-100 hover:bg-slate-600 focus:ring-slate-500 border border-slate-600;
+  }
+
+  .btn-danger {
+    @apply bg-red-600 text-white hover:bg-red-500 focus:ring-red-500 shadow-lg shadow-red-600/30;
+  }
+
+  .btn-success {
+    @apply bg-emerald-600 text-white hover:bg-emerald-500 focus:ring-emerald-500 shadow-lg shadow-emerald-600/30;
+  }
+
+  .card {
+    @apply bg-slate-800 rounded-xl shadow-lg border border-slate-700 p-6;
+  }
+
+  .input {
+    @apply w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all;
+  }
+
+  /* Glass morphism effect */
+  .glass {
+    @apply bg-slate-800/50 backdrop-blur-lg border border-slate-700/50;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent;
+  }
+}
+
+/* Severity colors - dark theme */
+.severity-critical {
+  @apply bg-red-900/50 text-red-300 border-red-700;
+}
+.severity-high {
+  @apply bg-red-900/30 text-red-400 border-red-800;
+}
+.severity-medium {
+  @apply bg-yellow-900/30 text-yellow-400 border-yellow-800;
+}
+.severity-low {
+  @apply bg-blue-900/30 text-blue-400 border-blue-800;
+}
+.severity-info {
+  @apply bg-slate-700/50 text-slate-300 border-slate-600;
+}
+
+/* Risk score colors - dark theme */
+.risk-low {
+  @apply text-emerald-400;
+}
+.risk-medium {
+  @apply text-yellow-400;
+}
+.risk-high {
+  @apply text-orange-400;
+}
+.risk-critical {
+  @apply text-red-400 font-bold;
+}
+
+/* Animations */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px theme("colors.blue.500"), 0 0 10px theme("colors.blue.500");
+  }
+  50% {
+    box-shadow: 0 0 10px theme("colors.blue.500"), 0 0 20px theme("colors.blue.500");
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}

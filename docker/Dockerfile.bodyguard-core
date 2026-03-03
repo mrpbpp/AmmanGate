@@ -1,0 +1,89 @@
+# Multi-stage build for AmmanGate Bodyguard Core
+FROM ubuntu:22.04 AS builder
+
+# Prevent interactive prompts during build
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Asia/Jakarta
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    wget \
+    curl \
+    git \
+    pkg-config \
+    libsqlite3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Go
+ARG GO_VERSION=1.21.5
+RUN wget -q https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz && \
+    rm go${GO_VERSION}.linux-amd64.tar.gz
+
+ENV PATH="/usr/local/go/bin:${PATH}"
+ENV GOPATH="/go"
+ENV GO111MODULE=on
+
+# Copy source code
+WORKDIR /app
+COPY apps/bodyguard-core/ .
+
+# Build the application
+RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o bodyguard-core .
+
+# Final stage - minimal runtime
+FROM ubuntu:22.04
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    libsqlite3-0 \
+    wget \
+    curl \
+    clamav \
+    clamav-daemon \
+    suricata \
+    jq \
+    libnetfilter-queue1 \
+    libnetfilter-queue-dev \
+    libpcre3 \
+    libpcre3-dev \
+    libyaml-0-2 \
+    libyaml-dev \
+    libpcap0.8 \
+    libpcap-dev \
+    file \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create directories for ClamAV
+RUN mkdir -p /var/lib/clamav /var/log/clamav /var/run/clamav && \
+    touch /var/log/clamav/clamd.log /var/log/clamav/freshclam.log && \
+    chown -R clamav:clamav /var/lib/clamav /var/log/clamav /var/run/clamav
+
+# Create directories for Suricata
+RUN mkdir -p /var/log/suricata /etc/suricata /var/run/suricata
+
+# Copy compiled binary from builder
+COPY --from=builder /app/bodyguard-core /usr/local/bin/bodyguard-core
+
+# Copy configuration files
+COPY docker/suricata.yaml /etc/suricata/suricata.yaml
+COPY docker/clamd.conf /etc/clamav/clamd.conf
+
+# Create working directory
+WORKDIR /ammangate
+
+# Expose ports
+EXPOSE 8787
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8787/v1/health || exit 1
+
+# Set up entrypoint
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["/usr/local/bin/bodyguard-core"]

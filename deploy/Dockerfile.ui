@@ -1,0 +1,47 @@
+# Multi-stage build for bodyguard-ui (Next.js)
+FROM node:20-alpine AS builder
+
+WORKDIR /build
+
+# Copy package files
+COPY package.json package-lock.json* ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Build the application
+RUN npm run build
+
+# Final stage
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install production dependencies only
+COPY package.json package-lock.json* ./
+RUN npm ci --only=production
+
+# Copy built application from builder
+COPY --from=builder /build/.next/standalone ./
+COPY --from=builder /build/.next/static ./.next/static
+COPY --from=builder /build/public ./public
+
+# Create non-root user
+RUN addgroup -g 1000 node && \
+    adduser -D -u 1000 -G node node && \
+    chown -R node:node /app
+
+USER node
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+  CMD wget -q --spider http://localhost:3000 || exit 1
+
+# Run the application
+CMD ["node", "server.js"]

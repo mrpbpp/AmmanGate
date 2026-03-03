@@ -1,0 +1,29 @@
+{
+  "name": "claw-gateway",
+  "version": "1.0.0",
+  "description": "AmmanGate Clawbot Gateway - Bridges Clawbot AI with AmmanGate Core",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "test": "node --test test/**/*.test.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "node-fetch": "^3.3.2",
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "ammangate",
+    "clawbot",
+    "security",
+    "ai",
+    "gateway"
+  ],
+  "author": "AmmanGate",
+  "license": "MIT"
+}

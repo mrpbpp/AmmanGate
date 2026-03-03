@@ -1,0 +1,40 @@
+# AmmanGate Reverse Proxy Configuration
+# This makes the service available at http://bodyguard.local
+
+{
+  # Local DNS setup - add to /etc/hosts or use mDNS/avahi
+  # 127.0.0.1 bodyguard.local
+}
+
+:80 {
+  # Redirect HTTP to HTTPS (optional for local deployment)
+  # redir https://{host}{uri}
+
+  # Or serve directly on HTTP for local LAN access
+  handle /api/* {
+    reverse_proxy bodyguard-ui:3000
+  }
+
+  handle /* {
+    reverse_proxy bodyguard-ui:3000
+  }
+
+  log {
+    output file /var/log/caddy/ammangate-access.log
+  }
+}
+
+# Uncomment for HTTPS (requires certificate setup)
+# :443 {
+#   tls internal {
+#     on_demand
+#   }
+#
+#   handle /api/* {
+#     reverse_proxy bodyguard-ui:3000
+#   }
+#
+#   handle /* {
+#     reverse_proxy bodyguard-ui:3000
+#   }
+# }

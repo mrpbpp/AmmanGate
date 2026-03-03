@@ -1,0 +1,91 @@
+# Suricata configuration for AmmanGate Docker
+
+# Global settings
+vars:
+  address-groups:
+    HOME_NET: "[192.168.0.0/16,10.0.0.0/8,172.16.0.0/12]"
+    EXTERNAL_NET: "!$HOME_NET"
+
+  port-groups:
+    HTTP_PORTS: "80"
+    HTTPS_PORTS: "443"
+    DNS_PORTS: "53"
+
+# Run modes
+default-rule-path: /var/lib/suricata/rules
+rule-files:
+  - suricata.rules
+
+# Logging
+logging:
+  outputs:
+    - fast:
+        enabled: no
+        filename: fast.log
+        append: yes
+    - eve-log:
+        enabled: yes
+        filetype: json
+        filename: eve.json
+        types:
+          - alert
+          - http
+          - dns
+          - tls
+          - flow
+    - stats:
+        enabled: yes
+        filename: stats.log
+        totals: yes
+        threads: no
+
+# Affinity settings
+affinity:
+  mm: balanced
+
+# Packet capture
+pcap:
+  - interface: default
+    buffer-size: 16777216
+    promisc: no
+    snaplen: 1518
+
+# App-layer protocols
+app-layer:
+  protocols:
+    tls:
+      enabled: yes
+      JA3: yes
+      fingerprints: /etc/suricata/tls/JA3-fingerprints.json
+    http:
+      enabled: yes
+    dns:
+      enabled: yes
+      libhtp:
+        policy:
+          - policy: balanced
+            default: yes
+
+# Profiling
+profiling:
+  rules:
+    enabled: no
+
+# Detection engine
+detect-engine:
+  - profile: custom
+    custom:
+      rules: true
+      state: true
+
+# Rule management
+rule-profiler:
+  enabled: no
+  filename: rule_perf.log
+  sort: avg-score
+  limit: 100
+
+# Custom rules (for AmmanGate integration)
+# You can add AmmanGate-specific rules here
+
+default-packet-size: 1500

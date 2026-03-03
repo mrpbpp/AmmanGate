@@ -1,0 +1,490 @@
+openapi: 3.0.3
+info:
+  title: AmmanGate - AI Home Cyber Bodyguard API
+  version: 0.1.0
+  description: |
+    Local-only network security API for home and small business protection.
+
+    **Key Features:**
+    - Device inventory and fingerprinting
+    - Real-time threat detection
+    - Action approval workflow with PIN
+    - WebSocket event streaming
+
+  contact:
+    name: AmmanGate
+    url: https://ammangate.local
+
+servers:
+  - url: http://127.0.0.1:8787
+    description: Local development (localhost only)
+  - url: http://bodyguard.local:8787
+    description: Local network access
+
+tags:
+  - name: Health
+    description: System health checks
+  - name: System
+    description: System status and metrics
+  - name: Devices
+    description: Network device management
+  - name: Events
+    description: Security events and alerts
+  - name: Actions
+    description: Security actions with approval workflow
+
+paths:
+  /v1/health:
+    get:
+      tags: [Health]
+      summary: Health check
+      description: Returns API health status
+      operationId: health
+      responses:
+        "200":
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  ts:
+                    type: string
+                    format: date-time
+                  version:
+                    type: string
+                    example: "0.1.0"
+
+  /v1/system/status:
+    get:
+      tags: [System]
+      summary: Get system status
+      description: Returns current system status including uptime, memory, and sensor status
+      operationId: getSystemStatus
+      responses:
+        "200":
+          description: System status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemStatus"
+
+  /v1/devices:
+    get:
+      tags: [Devices]
+      summary: List devices
+      description: Returns all known network devices with optional filtering
+      operationId: listDevices
+      parameters:
+        - name: q
+          in: query
+          description: Search query (matches MAC, IP, hostname)
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Maximum number of results
+          schema:
+            type: integer
+            default: 100
+      responses:
+        "200":
+          description: Device list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Device"
+
+  /v1/devices/{id}:
+    get:
+      tags: [Devices]
+      summary: Get device details
+      description: Returns detailed information about a specific device
+      operationId: getDevice
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Device details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceDetail"
+        "404":
+          description: Device not found
+
+  /v1/events:
+    get:
+      tags: [Events]
+      summary: Query events
+      description: Returns security events with filtering options
+      operationId: listEvents
+      parameters:
+        - name: since
+          in: query
+          description: RFC3339 timestamp to filter events after
+          schema:
+            type: string
+            format: date-time
+        - name: min_severity
+          in: query
+          description: Minimum severity level (1-10)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10
+            default: 1
+        - name: device_id
+          in: query
+          description: Filter by device ID
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 200
+      responses:
+        "200":
+          description: Event list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Event"
+
+  /v1/alerts/active:
+    get:
+      tags: [Events]
+      summary: Get active alerts
+      description: Returns all currently active security alerts
+      operationId: getActiveAlerts
+      responses:
+        "200":
+          description: Active alerts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Alert"
+
+  /v1/explain:
+    post:
+      tags: [Events]
+      summary: Explain events (AI)
+      description: |
+        Generates human-readable explanation of events using local LLM.
+        Available in v1.0 with LLM integration.
+      operationId: explainEvents
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                event_ids:
+                  type: array
+                  items:
+                    type: string
+                time_range:
+                  type: string
+                  example: "last_6h"
+                device_id:
+                  type: string
+      responses:
+        "200":
+          description: Explanation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  narrative:
+                    type: string
+                  suspected_cause:
+                    type: string
+                  recommended_actions:
+                    type: array
+                    items:
+                      type: string
+                  confidence:
+                    type: number
+                    format: float
+
+  /v1/actions/request-approval:
+    post:
+      tags: [Actions]
+      summary: Request action approval
+      description: |
+        Creates a pending security action and returns an approval challenge.
+        The action must be approved with PIN before execution.
+      operationId: requestApproval
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActionRequest"
+      responses:
+        "200":
+          description: Approval challenge created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApprovalChallenge"
+
+  /v1/actions/approve:
+    post:
+      tags: [Actions]
+      summary: Approve pending action
+      description: Approves a pending action with PIN and executes it
+      operationId: approveAction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [approval_id, pin]
+              properties:
+                approval_id:
+                  type: string
+                pin:
+                  type: string
+      responses:
+        "200":
+          description: Action approved and executed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActionResult"
+        "400":
+          description: Invalid approval (expired, wrong PIN, etc.)
+        "403":
+          description: Invalid PIN
+
+  /v1/actions/pending:
+    get:
+      tags: [Actions]
+      summary: Get pending actions
+      description: Returns all pending actions awaiting approval
+      operationId: getPendingActions
+      responses:
+        "200":
+          description: Pending actions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+
+  /v1/ws:
+    get:
+      tags: [System]
+      summary: WebSocket connection
+      description: |
+        WebSocket endpoint for real-time event streaming.
+        Connect with: ws://127.0.0.1:8787/v1/ws
+      operationId: websocket
+      responses:
+        "101":
+          description: Switching Protocols
+
+components:
+  schemas:
+    SystemStatus:
+      type: object
+      properties:
+        uptime_sec:
+          type: integer
+          description: System uptime in seconds
+        cpu_load:
+          type: number
+          format: float
+          description: CPU load average
+        mem_used_mb:
+          type: integer
+          description: Memory usage in MB
+        sensors:
+          type: object
+          description: Sensor status
+          properties:
+            dhcp:
+              type: boolean
+            arp:
+              type: boolean
+            dns:
+              type: boolean
+            suricata:
+              type: boolean
+        last_event_ts:
+          type: string
+          format: date-time
+          description: Timestamp of last event
+
+    Device:
+      type: object
+      properties:
+        id:
+          type: string
+        mac:
+          type: string
+          description: MAC address
+        ip:
+          type: string
+          description: IP address
+        hostname:
+          type: string
+        vendor:
+          type: string
+          description: Vendor from OUI lookup
+        type_guess:
+          type: string
+          enum: [iot, laptop, phone, camera, nas, unknown]
+        risk_score:
+          type: integer
+          minimum: 0
+          maximum: 100
+        last_seen:
+          type: string
+          format: date-time
+
+    DeviceDetail:
+      allOf:
+        - $ref: "#/components/schemas/Device"
+        - type: object
+          properties:
+            first_seen:
+              type: string
+              format: date-time
+            tags:
+              type: array
+              items:
+                type: string
+            notes:
+              type: string
+
+    Event:
+      type: object
+      properties:
+        id:
+          type: string
+        ts:
+          type: string
+          format: date-time
+        device_id:
+          type: string
+          nullable: true
+        category:
+          type: string
+          enum: [dns, scan, beacon, suricata, rogue, arp_spoof, policy]
+        severity:
+          type: integer
+          minimum: 1
+          maximum: 10
+        summary:
+          type: string
+        raw:
+          type: object
+          additionalProperties: true
+
+    Alert:
+      type: object
+      properties:
+        id:
+          type: string
+        ts:
+          type: string
+          format: date-time
+        device_id:
+          type: string
+          nullable: true
+        severity:
+          type: integer
+          minimum: 1
+          maximum: 10
+        title:
+          type: string
+        status:
+          type: string
+          enum: [active, resolved]
+        related_event_ids:
+          type: array
+          items:
+            type: string
+
+    ActionRequest:
+      type: object
+      required: [action_type, target, requested_by]
+      properties:
+        action_type:
+          type: string
+          enum:
+            - quarantine_device
+            - unquarantine_device
+            - block_ip
+            - block_domain
+            - unblock_ip
+            - unblock_domain
+        target:
+          type: object
+          description: Action target (device_id, IP, domain, etc.)
+          additionalProperties: true
+        ttl_sec:
+          type: integer
+          description: Action duration in seconds
+          default: 1800
+        requested_by:
+          type: string
+          enum: [dashboard, whatsapp, api]
+
+    ApprovalChallenge:
+      type: object
+      properties:
+        action_id:
+          type: string
+        approval_id:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+        message:
+          type: string
+          description: Human-readable approval message
+
+    ActionResult:
+      type: object
+      properties:
+        action_id:
+          type: string
+        status:
+          type: string
+          enum: [approved_executed, approved_queued, failed]
+        detail:
+          type: string
+          description: Execution details
